@@ -51,22 +51,23 @@
                 <div class="row" id="withdrawalsContainer">
                     @foreach($withdrawals as $withdrawal)
                     <div class="col-md-6 col-lg-4 mb-4 withdrawal-card"
-                        data-user="{{ strtolower($withdrawal->user->first_name.' '.$withdrawal->user->last_name) }}"
+                        data-user="{{ strtolower(optional($withdrawal->user)->first_name.' '.optional($withdrawal->user)->last_name) }}"
                         data-status="{{ $withdrawal->status }}">
                         <div class="card bg-dark border-{{ 
-                            $withdrawal->status == 'approved' ? 'success' : 
-                            ($withdrawal->status == 'rejected' ? 'danger' : 'warning') 
-                        }}">
+        $withdrawal->status == 'approved' ? 'success' : 
+        ($withdrawal->status == 'rejected' ? 'danger' : 'warning') 
+    }}">
                             <div class="card-header">
                                 <div class="d-flex justify-content-between align-items-center">
                                     <h5 class="card-title text-light mb-0">
-                                        {{ $withdrawal->user->first_name }} {{ $withdrawal->user->last_name }}
+                                        {{ optional($withdrawal->user)->first_name ?? 'Unknown' }}
+                                        {{ optional($withdrawal->user)->last_name ?? '' }}
                                     </h5>
                                     <span class="badge 
-                                        @if($withdrawal->status == 'approved') badge-success
-                                        @elseif($withdrawal->status == 'rejected') badge-danger
-                                        @else badge-warning
-                                        @endif">
+                    @if($withdrawal->status == 'approved') badge-success
+                    @elseif($withdrawal->status == 'rejected') badge-danger
+                    @else badge-warning
+                    @endif">
                                         {{ ucfirst($withdrawal->status) }}
                                     </span>
                                 </div>
@@ -75,8 +76,8 @@
                                 <div class="mb-3">
                                     <strong>Amount:</strong>
                                     <span class="float-right">
-                                        {{ config('currencies.' . $withdrawal->user->currency, '$') }}{{
-                                        number_format($withdrawal->amount, 2) }}
+                                        {{ config('currencies.' . optional($withdrawal->user)->currency, '$') }}
+                                        {{ number_format($withdrawal->amount, 2) }}
                                     </span>
                                 </div>
 
@@ -178,6 +179,7 @@
                         </div>
                     </div>
                     @endforeach
+
                 </div>
 
                 <!-- Pagination -->
