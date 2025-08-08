@@ -1,4 +1,4 @@
-"@include('admin.header')
+@include('admin.header')
 
 <div class="main-panel">
     <div class="content-wrapper">
@@ -75,43 +75,75 @@
                                 <div class="mb-3">
                                     <strong>Amount:</strong>
                                     <span class="float-right">
-                                        @if($withdrawal->account_type == 'crypto')
-                                        {{ number_format($withdrawal->amount, 8) }} {{
-                                        strtoupper($withdrawal->crypto_currency) }}
-                                        @else
-                                        ${{ number_format($withdrawal->amount, 2) }}
-                                        @endif
+                                        {{ config('currencies.' . $withdrawal->user->currency, '$') }}{{
+                                        number_format($withdrawal->amount, 2) }}
+                                    </span>
+                                </div>
+
+                                <div class="mb-3">
+                                    <strong>Method:</strong>
+                                    <span class="float-right text-capitalize">
+                                        {{ $withdrawal->withdrawal_method }}
                                     </span>
                                 </div>
 
                                 <div class="mb-3">
                                     <strong>Account Type:</strong>
                                     <span class="float-right text-capitalize">
-                                        {{ $withdrawal->crypto_currency }}
+                                        {{ $withdrawal->account_type }}
                                     </span>
                                 </div>
 
                                 <div class="mb-3">
                                     <strong>Payment Details:</strong>
-                                    <div class="mt-1 text-right">
-
-                                        <div class="d-flex justify-content-between">
+                                    <div class="mt-2">
+                                        @if($withdrawal->withdrawal_method == 'crypto')
+                                        <div class="d-flex justify-content-between mb-1">
                                             <span>Crypto Type:</span>
-                                            <span class="text-capitalize">{{ $withdrawal->crypto_currency }}</span>
+                                            <span class="text-capitalize">{{ $withdrawal->crypto_currency ?? 'N/A'
+                                                }}</span>
                                         </div>
-                                        <div class="d-flex justify-content-between align-items-center mt-1">
+                                        <div class="d-flex justify-content-between align-items-center mb-1">
                                             <span>Wallet Address:</span>
                                             <div class="text-truncate wallet-address" style="max-width: 150px;"
                                                 title="{{ $withdrawal->wallet_address }}"
                                                 data-clipboard-text="{{ $withdrawal->wallet_address }}">
-                                                {{ $withdrawal->wallet_address }}
+                                                {{ $withdrawal->wallet_address ?? 'N/A' }}
                                             </div>
                                             <button class="btn btn-sm btn-outline-light copy-btn ml-1"
                                                 title="Copy to clipboard">
                                                 <i class="fas fa-copy"></i>
                                             </button>
                                         </div>
-
+                                        @else
+                                        @php
+                                        $bankDetails = is_array($withdrawal->bank_details)
+                                        ? $withdrawal->bank_details
+                                        : json_decode($withdrawal->bank_details, true);
+                                        @endphp
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Country:</span>
+                                            <span>{{ $bankDetails['country'] ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Bank:</span>
+                                            <span>{{ $bankDetails['bank'] ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Account Number:</span>
+                                            <span>{{ $bankDetails['account_number'] ?? 'N/A' }}</span>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>Account Name:</span>
+                                            <span>{{ $bankDetails['account_name'] ?? 'N/A' }}</span>
+                                        </div>
+                                        @if(!empty($bankDetails['swift_code']))
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span>SWIFT/IBAN:</span>
+                                            <span>{{ $bankDetails['swift_code'] }}</span>
+                                        </div>
+                                        @endif
+                                        @endif
                                     </div>
                                 </div>
 
@@ -351,4 +383,4 @@
             margin-bottom: 0.5rem;
         }
     }
-</style>"
+</style>

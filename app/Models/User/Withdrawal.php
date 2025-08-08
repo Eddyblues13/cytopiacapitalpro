@@ -12,7 +12,13 @@ class Withdrawal extends Model
         'crypto_currency',
         'amount',
         'wallet_address',
+        'bank_details',
         'status',
+        'withdrawal_method'
+    ];
+
+    protected $casts = [
+        'bank_details' => 'array'
     ];
 
     public function user()
