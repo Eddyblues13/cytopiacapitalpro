@@ -42,6 +42,9 @@ class WithdrawalController extends Controller
 
         $user = Auth::user();
 
+
+        $data['user'] = Auth::user();
+
         $data['holdingBalance'] = HoldingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
         $data['stakingBalance'] = StakingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
         $data['tradingBalance'] = TradingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
@@ -51,7 +54,12 @@ class WithdrawalController extends Controller
             ->sum('amount') ?? 0;
         $data['profit'] = Profit::where('user_id', $user->id)->sum('amount') ?? 0;
 
-        $data['totalBalance'] =    $data['holdingBalance'] +  $data['stakingBalance'] +   $data['tradingBalance']  +  $data['referralBalance'] +  $data['depositBalance'] +  $data['profit'];
+        $data['totalBalance'] =
+            $data['holdingBalance'] +
+            $data['stakingBalance'] +
+            $data['tradingBalance'] +
+            $data['referralBalance'] +
+            $data['profit'];
 
 
         return view('user.crypto_withdrawal', $data);
@@ -61,61 +69,72 @@ class WithdrawalController extends Controller
     {
         // Validate the request
         $request->validate([
-            'account' => 'required|string|in:trading,holding,staking,profit,deposit',
-            'crypto_currency' => 'required|string|in:btc,usdt,eth',
+            'withdrawal_method' => 'required|string|in:crypto,bank',
+            'account' => 'required|string|in:trading,holding,staking,profit,deposit,referral',
             'amount' => 'required|numeric|min:0.01',
-            'wallet_address' => 'required|string',
         ]);
+
+        // Additional validation based on withdrawal method
+        if ($request->withdrawal_method === 'crypto') {
+            $request->validate([
+                'crypto_currency' => 'required|string|in:btc,usdt,eth',
+                'wallet_address' => 'required|string',
+            ]);
+        } else {
+            $request->validate([
+                'country' => 'required|string',
+                'bank' => 'required|string',
+                'account_number' => 'required|string',
+                'account_name' => 'required|string',
+            ]);
+        }
 
         $user = Auth::user();
         $amount = $request->input('amount');
         $accountType = $request->input('account');
-        $cryptoCurrency = $request->input('crypto_currency');
-        $walletAddress = $request->input('wallet_address');
+        $withdrawalMethod = $request->input('withdrawal_method');
 
         // Fetch user balances
         $holdingBalance = HoldingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
         $stakingBalance = StakingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
         $tradingBalance = TradingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
         $referralBalance = ReferralBalance::where('user_id', $user->id)->sum('amount') ?? 0;
-
-        $data['depositBalance'] = Deposit::where('user_id', $user->id)
-            ->where('status', 'approved') // Only include approved deposits
-            ->sum('amount') ?? 0;
-        $data['profit'] = Profit::where('user_id', $user->id)->sum('amount') ?? 0;
+        $depositBalance = Deposit::where('user_id', $user->id)->where('status', 'approved')->sum('amount') ?? 0;
+        $profit = Profit::where('user_id', $user->id)->sum('amount') ?? 0;
 
         // Validate the withdrawal amount
-        // switch ($accountType) {
-        //     case 'holding':
-        //         if ($amount > $holdingBalance) {
-        //             return response()->json(['message' => 'Insufficient balance in Holding Account.'], 400);
-        //         }
-        //         break;
-        //     case 'staking':
-        //         if ($amount > $stakingBalance) {
-        //             return response()->json(['message' => 'Insufficient balance in Staking Account.'], 400);
-        //         }
-        //         break;
-        //     case 'trading':
-        //         if ($amount > $tradingBalance) {
-        //             return response()->json(['message' => 'Insufficient balance in Trading Account.'], 400);
-        //         }
-        //     case 'referral':
-        //         if ($amount > $tradingBalance) {
-        //             return response()->json(['message' => 'Insufficient balance in Referral Account.'], 400);
-        //         }
-        //     case 'profit':
-        //         if ($amount > $tradingBalance) {
-        //             return response()->json(['message' => 'Insufficient balance in Profit Account.'], 400);
-        //         }
-        //     case 'deposit':
-        //         if ($amount > $tradingBalance) {
-        //             return response()->json(['message' => 'Insufficient balance in Deposit Account.'], 400);
-        //         }
-        //         break;
-        //     default:
-        //         return response()->json(['message' => 'Invalid account selected.'], 400);
-        // }
+        switch ($accountType) {
+            case 'holding':
+                if ($amount > $holdingBalance) {
+                    return response()->json(['message' => 'Insufficient balance in Holding Account.'], 400);
+                }
+                break;
+            case 'staking':
+                if ($amount > $stakingBalance) {
+                    return response()->json(['message' => 'Insufficient balance in Staking Account.'], 400);
+                }
+                break;
+            case 'trading':
+                if ($amount > $tradingBalance) {
+                    return response()->json(['message' => 'Insufficient balance in Trading Account.'], 400);
+                }
+                break;
+            case 'referral':
+                if ($amount > $referralBalance) {
+                    return response()->json(['message' => 'Insufficient balance in Referral Account.'], 400);
+                }
+                break;
+            case 'profit':
+                if ($amount > $profit) {
+                    return response()->json(['message' => 'Insufficient balance in Profit Account.'], 400);
+                }
+                break;
+            case 'deposit':
+                if ($amount > $depositBalance) {
+                    return response()->json(['message' => 'Insufficient balance in Deposit Account.'], 400);
+                }
+                break;
+        }
 
         // Start a database transaction
         DB::beginTransaction();
@@ -133,7 +152,7 @@ class WithdrawalController extends Controller
                     TradingBalance::where('user_id', $user->id)->decrement('amount', $amount);
                     break;
                 case 'referral':
-                    referralBalance::where('user_id', $user->id)->decrement('amount', $amount);
+                    ReferralBalance::where('user_id', $user->id)->decrement('amount', $amount);
                     break;
                 case 'profit':
                     Profit::where('user_id', $user->id)->decrement('amount', $amount);
@@ -143,23 +162,37 @@ class WithdrawalController extends Controller
                     break;
             }
 
-            // Create a new withdrawal record
-            Withdrawal::create([
+            // Create withdrawal data
+            $withdrawalData = [
                 'user_id' => $user->id,
                 'account_type' => $accountType,
-                'crypto_currency' => $cryptoCurrency,
                 'amount' => $amount,
-                'wallet_address' => $walletAddress,
-                'status' => 'pending', // Default status
-            ]);
+                'status' => 'pending',
+            ];
+
+            // Add method-specific data
+            if ($withdrawalMethod === 'crypto') {
+                $withdrawalData['crypto_currency'] = $request->crypto_currency;
+                $withdrawalData['wallet_address'] = $request->wallet_address;
+            } else {
+                $withdrawalData['bank_details'] = json_encode([
+                    'country' => $request->country,
+                    'bank' => $request->bank,
+                    'account_number' => $request->account_number,
+                    'account_name' => $request->account_name,
+                    'swift_code' => $request->swift_code,
+                ]);
+            }
+
+            // Create a new withdrawal record
+            Withdrawal::create($withdrawalData);
 
             // Commit the transaction
             DB::commit();
-            // Set a session flag to show the notification
-            session()->flash('show_notification', true);
+
             return response()->json([
                 'message' => 'Withdrawal request submitted successfully!',
-                'redirect' => route('withdrawal'), // Redirect to the withdrawal page
+                'redirect' => route('withdrawal'),
             ]);
         } catch (\Exception $e) {
             // Rollback the transaction in case of an error
@@ -167,4 +200,115 @@ class WithdrawalController extends Controller
             return response()->json(['message' => 'An error occurred. Please try again.'], 500);
         }
     }
+
+    // public function submit(Request $request)
+    // {
+    //     // Validate the request
+    //     $request->validate([
+    //         'account' => 'required|string|in:trading,holding,staking,profit,deposit',
+    //         'crypto_currency' => 'required|string|in:btc,usdt,eth',
+    //         'amount' => 'required|numeric|min:0.01',
+    //         'wallet_address' => 'required|string',
+    //     ]);
+
+    //     $user = Auth::user();
+    //     $amount = $request->input('amount');
+    //     $accountType = $request->input('account');
+    //     $cryptoCurrency = $request->input('crypto_currency');
+    //     $walletAddress = $request->input('wallet_address');
+
+    //     // Fetch user balances
+    //     $holdingBalance = HoldingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
+    //     $stakingBalance = StakingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
+    //     $tradingBalance = TradingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
+    //     $referralBalance = ReferralBalance::where('user_id', $user->id)->sum('amount') ?? 0;
+
+    //     $data['depositBalance'] = Deposit::where('user_id', $user->id)
+    //         ->where('status', 'approved') // Only include approved deposits
+    //         ->sum('amount') ?? 0;
+    //     $data['profit'] = Profit::where('user_id', $user->id)->sum('amount') ?? 0;
+
+    //     // Validate the withdrawal amount
+    //     // switch ($accountType) {
+    //     //     case 'holding':
+    //     //         if ($amount > $holdingBalance) {
+    //     //             return response()->json(['message' => 'Insufficient balance in Holding Account.'], 400);
+    //     //         }
+    //     //         break;
+    //     //     case 'staking':
+    //     //         if ($amount > $stakingBalance) {
+    //     //             return response()->json(['message' => 'Insufficient balance in Staking Account.'], 400);
+    //     //         }
+    //     //         break;
+    //     //     case 'trading':
+    //     //         if ($amount > $tradingBalance) {
+    //     //             return response()->json(['message' => 'Insufficient balance in Trading Account.'], 400);
+    //     //         }
+    //     //     case 'referral':
+    //     //         if ($amount > $tradingBalance) {
+    //     //             return response()->json(['message' => 'Insufficient balance in Referral Account.'], 400);
+    //     //         }
+    //     //     case 'profit':
+    //     //         if ($amount > $tradingBalance) {
+    //     //             return response()->json(['message' => 'Insufficient balance in Profit Account.'], 400);
+    //     //         }
+    //     //     case 'deposit':
+    //     //         if ($amount > $tradingBalance) {
+    //     //             return response()->json(['message' => 'Insufficient balance in Deposit Account.'], 400);
+    //     //         }
+    //     //         break;
+    //     //     default:
+    //     //         return response()->json(['message' => 'Invalid account selected.'], 400);
+    //     // }
+
+    //     // Start a database transaction
+    //     DB::beginTransaction();
+
+    //     try {
+    //         // Deduct the amount from the selected account
+    //         switch ($accountType) {
+    //             case 'holding':
+    //                 HoldingBalance::where('user_id', $user->id)->decrement('amount', $amount);
+    //                 break;
+    //             case 'staking':
+    //                 StakingBalance::where('user_id', $user->id)->decrement('amount', $amount);
+    //                 break;
+    //             case 'trading':
+    //                 TradingBalance::where('user_id', $user->id)->decrement('amount', $amount);
+    //                 break;
+    //             case 'referral':
+    //                 referralBalance::where('user_id', $user->id)->decrement('amount', $amount);
+    //                 break;
+    //             case 'profit':
+    //                 Profit::where('user_id', $user->id)->decrement('amount', $amount);
+    //                 break;
+    //             case 'deposit':
+    //                 Deposit::where('user_id', $user->id)->decrement('amount', $amount);
+    //                 break;
+    //         }
+
+    //         // Create a new withdrawal record
+    //         Withdrawal::create([
+    //             'user_id' => $user->id,
+    //             'account_type' => $accountType,
+    //             'crypto_currency' => $cryptoCurrency,
+    //             'amount' => $amount,
+    //             'wallet_address' => $walletAddress,
+    //             'status' => 'pending', // Default status
+    //         ]);
+
+    //         // Commit the transaction
+    //         DB::commit();
+    //         // Set a session flag to show the notification
+    //         session()->flash('show_notification', true);
+    //         return response()->json([
+    //             'message' => 'Withdrawal request submitted successfully!',
+    //             'redirect' => route('withdrawal'), // Redirect to the withdrawal page
+    //         ]);
+    //     } catch (\Exception $e) {
+    //         // Rollback the transaction in case of an error
+    //         DB::rollBack();
+    //         return response()->json(['message' => 'An error occurred. Please try again.'], 500);
+    //     }
+    // }
 }

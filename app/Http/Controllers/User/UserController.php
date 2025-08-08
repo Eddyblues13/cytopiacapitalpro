@@ -20,7 +20,7 @@ class UserController extends Controller
         $user = Auth::user();
 
 
-        $data['user'] = Auth::user();
+        $data['user'] = Auth::user(); 
 
         $data['holdingBalance'] = HoldingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
         $data['stakingBalance'] = StakingBalance::where('user_id', $user->id)->sum('amount') ?? 0;
