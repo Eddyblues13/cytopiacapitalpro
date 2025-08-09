@@ -125,7 +125,7 @@ class WithdrawalController extends Controller
 
             return response()->json([
                 'message' => 'Withdrawal request submitted successfully!',
-                'redirect' => route('withdrawal.history'),
+                'redirect' => route('withdrawal'),
             ]);
         } catch (\Exception $e) {
             DB::rollBack();
