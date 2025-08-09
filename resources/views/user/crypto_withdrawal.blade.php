@@ -85,10 +85,7 @@
                     <div class="input-label">Bank</div>
                     <select class="select-account" name="bank" id="bankSelect">
                         <option value="">Select Bank</option>
-                        @foreach(config('banks.countries')[array_key_first(config('banks.countries'))]['banks'] as $name
-                        => $code)
-                        <option value="{{ $code }}">{{ $name }}</option>
-                        @endforeach
+                        <!-- Banks will be populated dynamically -->
                     </select>
                 </div>
 
@@ -129,98 +126,121 @@
 
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-    const withdrawalForm = document.getElementById('withdrawalForm');
-    const withdrawalMethod = document.getElementById('withdrawalMethod');
-    const cryptoFields = document.getElementById('cryptoFields');
-    const bankFields = document.getElementById('bankFields');
-    const submitBtn = document.getElementById('submitBtn');
-    const loadingSpinner = document.querySelector('.loading-spinner');
+        const withdrawalForm = document.getElementById('withdrawalForm');
+        const withdrawalMethod = document.getElementById('withdrawalMethod');
+        const cryptoFields = document.getElementById('cryptoFields');
+        const bankFields = document.getElementById('bankFields');
+        const submitBtn = document.getElementById('submitBtn');
+        const loadingSpinner = document.querySelector('.loading-spinner');
+        const countrySelect = document.getElementById('countrySelect');
+        const bankSelect = document.getElementById('bankSelect');
 
-    // Field references
-    const walletAddress = document.getElementById('walletAddress');
-    const cryptoCurrency = document.getElementById('cryptoCurrency');
-    const countrySelect = document.getElementById('countrySelect');
-    const bankSelect = document.getElementById('bankSelect');
-    const accountNumber = document.getElementById('accountNumber');
-    const accountName = document.getElementById('accountName');
+        // Field references
+        const walletAddress = document.getElementById('walletAddress');
+        const cryptoCurrency = document.getElementById('cryptoCurrency');
+        const accountNumber = document.getElementById('accountNumber');
+        const accountName = document.getElementById('accountName');
 
-    function updateFieldRequirements() {
-        // Reset requirements
-        [walletAddress, cryptoCurrency, countrySelect, bankSelect, accountNumber, accountName]
-            .forEach(field => {
-                field.removeAttribute('required');
-                field.value = ''; // clear hidden values
-            });
+        // Store bank data from config
+        const bankData = @json(config('banks.countries'));
 
-        // Hide both sections
-        cryptoFields.style.display = 'none';
-        bankFields.style.display = 'none';
-
-        if (withdrawalMethod.value === 'bank') {
-            bankFields.style.display = 'block';
-            countrySelect.setAttribute('required', 'required');
-            bankSelect.setAttribute('required', 'required');
-            accountNumber.setAttribute('required', 'required');
-            accountName.setAttribute('required', 'required');
-        } else if (withdrawalMethod.value === 'crypto') {
-            cryptoFields.style.display = 'block';
-            walletAddress.setAttribute('required', 'required');
-            cryptoCurrency.setAttribute('required', 'required');
-        }
-    }
-
-    if (withdrawalForm && withdrawalMethod) {
-        withdrawalMethod.addEventListener('change', updateFieldRequirements);
-        updateFieldRequirements(); // run on load
-
-        withdrawalForm.addEventListener('submit', function(e) {
-            e.preventDefault();
+        // Function to update bank options based on selected country
+        function updateBankOptions() {
+            const selectedCountry = countrySelect.value;
+            bankSelect.innerHTML = '<option value="">Select Bank</option>';
             
-            submitBtn.disabled = true;
-            loadingSpinner.style.display = 'inline-block';
+            if (selectedCountry && bankData[selectedCountry]) {
+                const banks = bankData[selectedCountry].banks;
+                for (const [name, code] of Object.entries(banks)) {
+                    const option = document.createElement('option');
+                    option.value = code;
+                    option.textContent = name;
+                    bankSelect.appendChild(option);
+                }
+            }
+        }
 
-            const formData = new FormData(this);
-
-            fetch(this.action, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Accept': 'application/json'
-                },
-                body: formData
-            })
-            .then(response => {
-                return response.json().then(data => {
-                    if (!response.ok) {
-                        throw data;
-                    }
-                    return data;
+        function updateFieldRequirements() {
+            // Reset requirements
+            [walletAddress, cryptoCurrency, countrySelect, bankSelect, accountNumber, accountName]
+                .forEach(field => {
+                    field.removeAttribute('required');
+                    field.value = ''; // clear hidden values
                 });
-            })
-            .then(data => {
-                toastr.success(data.message || "Withdrawal successful");
-                this.reset();
-                updateFieldRequirements();
-                if (data.redirect) {
-                    setTimeout(() => {
-                        window.location.href = data.redirect;
-                    }, 1500);
-                }
-            })
-            .catch(error => {
-                let errorMessage = 'An error occurred. Please try again...';
-                if (error && error.errors) {
-                    errorMessage = Object.values(error.errors).flat().join('<br>');
-                } else if (error && error.message) {
-                    errorMessage = error.message;
-                }
-                toastr.error(errorMessage);
-            })
-            .finally(() => {
-                submitBtn.disabled = false;
-                loadingSpinner.style.display = 'none';
+
+            // Hide both sections
+            cryptoFields.style.display = 'none';
+            bankFields.style.display = 'none';
+
+            if (withdrawalMethod.value === 'bank') {
+                bankFields.style.display = 'block';
+                countrySelect.setAttribute('required', 'required');
+                bankSelect.setAttribute('required', 'required');
+                accountNumber.setAttribute('required', 'required');
+                accountName.setAttribute('required', 'required');
+            } else if (withdrawalMethod.value === 'crypto') {
+                cryptoFields.style.display = 'block';
+                walletAddress.setAttribute('required', 'required');
+                cryptoCurrency.setAttribute('required', 'required');
+            }
+        }
+
+        if (withdrawalForm && withdrawalMethod) {
+            withdrawalMethod.addEventListener('change', updateFieldRequirements);
+            countrySelect.addEventListener('change', updateBankOptions);
+            
+            // Initialize
+            updateFieldRequirements();
+            updateBankOptions();
+
+            withdrawalForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                submitBtn.disabled = true;
+                loadingSpinner.style.display = 'inline-block';
+
+                const formData = new FormData(this);
+
+                fetch(this.action, {
+                    method: 'POST',
+                    headers: {
+                        'X-Requested-With': 'XMLHttpRequest',
+                        'Accept': 'application/json'
+                    },
+                    body: formData
+                })
+                .then(response => {
+                    return response.json().then(data => {
+                        if (!response.ok) {
+                            throw data;
+                        }
+                        return data;
+                    });
+                })
+                .then(data => {
+                    toastr.success(data.message || "Withdrawal successful");
+                    this.reset();
+                    updateFieldRequirements();
+                    if (data.redirect) {
+                        setTimeout(() => {
+                            window.location.href = data.redirect;
+                        }, 1500);
+                    }
+                })
+                .catch(error => {
+                    let errorMessage = 'An error occurred. Please try again...';
+                    if (error && error.errors) {
+                        errorMessage = Object.values(error.errors).flat().join('<br>');
+                    } else if (error && error.message) {
+                        errorMessage = error.message;
+                    }
+                    toastr.error(errorMessage);
+                })
+                .finally(() => {
+                    submitBtn.disabled = false;
+                    loadingSpinner.style.display = 'none';
+                });
             });
-        });
-    }
-});
+        }
+    });
 </script>

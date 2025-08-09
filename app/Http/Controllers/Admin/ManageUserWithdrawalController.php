@@ -131,7 +131,7 @@ class ManageUserWithdrawalController extends Controller
     {
         try {
             $withdrawal = Withdrawal::where('user_id', $userId)
-                ->where('status', 'pending')
+                ->where('status', 'pending') 
                 ->findOrFail($id);
 
             $withdrawal->update(['status' => 'approved']);

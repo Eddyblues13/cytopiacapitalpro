@@ -191,7 +191,7 @@ class BalanceController extends Controller
     }
 
     // Send transaction email
-    protected function sendTransactionEmail($userId, $transactionType, $amount, $transactionCategory)
+    protected function sendTransactionEmail($userId, $transactionType, $amount, $transactionCategory) 
     {
         $user = User::find($userId);
 

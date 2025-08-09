@@ -6,6 +6,9 @@ use App\Models\User;
 use App\Models\User\Withdrawal;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Controller;
+use App\Mail\WithdrawalApproved;
+use App\Mail\WithdrawalRejected;
+use Illuminate\Support\Facades\Mail;
 
 class WithdrawalController extends Controller
 {
@@ -36,6 +39,10 @@ class WithdrawalController extends Controller
             // Update withdrawal status
             $withdrawal->update(['status' => 'approved']);
 
+            // Send approval email
+            $user = User::find($withdrawal->user_id);
+            Mail::to($user->email)->send(new WithdrawalApproved($withdrawal));
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Withdrawal approved successfully!'
@@ -60,17 +67,12 @@ class WithdrawalController extends Controller
                 ], 400);
             }
 
-            // Refund the amount if rejected
-            // $user = User::find($withdrawal->user_id);
-            // if ($withdrawal->account_type == 'crypto') {
-            //     $user->crypto_balance += $withdrawal->amount;
-            // } else {
-            //     $user->balance += $withdrawal->amount;
-            // }
-            // $user->save();
-
             // Update withdrawal status
             $withdrawal->update(['status' => 'rejected']);
+
+            // Send rejection email
+            $user = User::find($withdrawal->user_id);
+            Mail::to($user->email)->send(new WithdrawalRejected($withdrawal));
 
             return response()->json([
                 'status' => 'success',
