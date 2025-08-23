@@ -91,7 +91,7 @@ class VerificationController extends Controller
                         'folder' => 'identity_verifications',
                         'transformation' => [
                             'width' => 800,
-                            'height' => 600,
+                            'height' => 600, 
                             'crop' => 'limit'
                         ]
                     ]
