@@ -8,7 +8,7 @@
 
         <div class="input-group">
             <div class="input-label">Amount ({{ config('currencies.' . auth()->user()->currency, '$') }})</div>
-            <input type="number" class="amount-input" id="amount" value="1000" min="1000" required>
+            <input type="number" class="amount-input" id="amount" value="100" min="100" required>
         </div>
 
         <div class="input-group">
