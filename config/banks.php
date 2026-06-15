@@ -87,6 +87,22 @@ return [
             ],
         ],
 
+        'Namibia' => [
+            'banks' => [
+                'First National Bank Namibia' => 'FNB Namibia',
+                'Standard Bank Namibia' => 'Standard Bank NA',
+                'Nedbank Namibia' => 'Nedbank NA',
+                'Bank Windhoek' => 'Bank Windhoek',
+                'Absa Bank Namibia' => 'Absa NA',
+                'Namibia Post and Savings Bank' => 'PostSavingsBank',
+                'Letshego Micro Financial Services' => 'Letshego',
+                'Trustco Bank Namibia' => 'Trustco',
+                'Ebank Namibia' => 'Ebank NA',
+                'Development Bank of Namibia' => 'DBN',
+                'Agricultural Bank of Namibia' => 'Agribank NA',
+            ],
+        ],
+
         'United States' => [
             'banks' => [
                 // Major national banks
