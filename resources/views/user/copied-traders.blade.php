@@ -39,7 +39,7 @@
                         <tr class="trade-row" data-status="{{ strtolower($history->status) }}">
                             <td>
                                 <div class="d-flex align-items-center">
-                                    <img src="{{ asset($history->trader->picture) }}" alt="{{ $history->trader->name }}"
+                                    <img src="{{ asset($history->trader->picture_url) }}" alt="{{ $history->trader->name }}"
                                         class="rounded-circle me-3" width="40">
                                     <div>
                                         <strong>{{ $history->trader->name }}</strong>

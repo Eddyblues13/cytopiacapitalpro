@@ -9,25 +9,13 @@ use Illuminate\Support\Facades\File;
 
 class TradersTableSeeder extends Seeder
 {
-    protected $cloudinary;
-
-    public function __construct()
-    {
-        $this->cloudinary = new Cloudinary([
-            'cloud' => [
-                'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
-                'api_key'    => env('CLOUDINARY_API_KEY'),
-                'api_secret' => env('CLOUDINARY_API_SECRET'),
-            ],
-            'url' => [
-                'secure' => true
-            ]
-        ]);
-    }
-
     public function run()
     {
-
+        // Only fill an empty table, so re-seeding never re-uploads pictures or restores deleted traders
+        if (Trader::query()->exists()) {
+            $this->command->info('Traders already exist, skipping.');
+            return;
+        }
 
         $traders = [
             [
@@ -83,14 +71,16 @@ class TradersTableSeeder extends Seeder
                 $picturePath = public_path($traderData['picture']);
 
                 if (File::exists($picturePath)) {
-                    $pictureData = $this->uploadToCloudinary($picturePath, 'traders');
+                    // Without a working Cloudinary account, serve the bundled copy from public/
+                    $pictureData = $this->uploadToCloudinary($picturePath, 'traders')
+                        ?? ['secure_url' => '/' . $traderData['picture'], 'public_id' => null];
                 } else {
                     $this->command->warn("Image not found: {$traderData['picture']}");
                 }
             }
 
-            // Create the trader record with explicit ID
-            Trader::create([
+            // Create the trader record with explicit ID (forceFill: id, badge and timestamps aren't fillable)
+            (new Trader)->forceFill([
                 'id' => $traderData['id'],
                 'picture_url' => $pictureData['secure_url'] ?? null,
                 'picture_public_id' => $pictureData['public_id'] ?? null,
@@ -104,14 +94,26 @@ class TradersTableSeeder extends Seeder
                 'profit_share' => $traderData['profit_share'],
                 'created_at' => $traderData['created_at'],
                 'updated_at' => $traderData['updated_at'],
-            ]);
+            ])->save();
         }
     }
 
     protected function uploadToCloudinary($imagePath, $folder)
     {
         try {
-            $uploadResult = $this->cloudinary->uploadApi()->upload($imagePath, [
+            // Built here so missing credentials fall back to the local image instead of aborting the seed
+            $cloudinary = new Cloudinary([
+                'cloud' => [
+                    'cloud_name' => env('CLOUDINARY_CLOUD_NAME'),
+                    'api_key'    => env('CLOUDINARY_API_KEY'),
+                    'api_secret' => env('CLOUDINARY_API_SECRET'),
+                ],
+                'url' => [
+                    'secure' => true
+                ]
+            ]);
+
+            $uploadResult = $cloudinary->uploadApi()->upload($imagePath, [
                 'folder' => $folder,
                 'transformation' => [
                     'width' => 500,
@@ -127,7 +129,7 @@ class TradersTableSeeder extends Seeder
                 'secure_url' => $uploadResult['secure_url'],
             ];
         } catch (\Exception $e) {
-            $this->command->error("Failed to upload image: {$e->getMessage()}");
+            $this->command->warn("Cloudinary upload failed ({$e->getMessage()}), using the local image instead.");
             return null;
         }
     }

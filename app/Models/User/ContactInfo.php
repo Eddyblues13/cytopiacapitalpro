@@ -18,6 +18,11 @@ class ContactInfo extends Model
         'country',
         'utility_bill_url',
         'utility_bill_public_id',
+        'verified_at',
+    ];
+
+    protected $casts = [
+        'verified_at' => 'datetime',
     ];
 
     public function user(): BelongsTo

@@ -17,7 +17,7 @@ class CopiedTradeController extends Controller
     public function index()
     {
         $tradingHistory = TradingHistory::with(['trader' => function ($query) {
-            $query->select('id', 'name', 'picture', 'return_rate');
+            $query->select('id', 'name', 'picture_url', 'return_rate');
         }])
             ->where('user_id', Auth::id())
             ->latest()

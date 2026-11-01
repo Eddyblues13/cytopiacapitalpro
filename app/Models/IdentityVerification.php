@@ -12,7 +12,14 @@ class IdentityVerification extends Model
         'front_photo_url',
         'front_photo_public_id',
         'back_photo_url',
-        'back_photo_public_id'
+        'back_photo_public_id',
+        'status',
+        'admin_id',
+        'verified_at',
+    ];
+
+    protected $casts = [
+        'verified_at' => 'datetime',
     ];
 
     public function user()

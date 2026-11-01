@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
+use App\Models\Admin\Admin;
 use Illuminate\Database\Seeder;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 class AdminsTableSeeder extends Seeder
@@ -15,22 +15,14 @@ class AdminsTableSeeder extends Seeder
      */
     public function run()
     {
-        // Clear the table first
-        DB::table('admins')->truncate();
-
-        $admins = [
+        // Create the admin login, or reset its name and password if it already exists.
+        // Override the defaults with ADMIN_NAME, ADMIN_EMAIL and ADMIN_PASSWORD in .env.
+        Admin::updateOrCreate(
+            ['email' => env('ADMIN_EMAIL') ?: 'admin@mail.com'],
             [
-                'id' => 1,
-                'name' => 'Admin Admin',
-                'email' => 'admin@mail.com',
-                'email_verified_at' => null,
-                'password' => Hash::make('12345678'), // New hashed password
-                'remember_token' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ];
-
-        DB::table('admins')->insert($admins);
+                'name' => env('ADMIN_NAME') ?: 'Admin Admin',
+                'password' => Hash::make(env('ADMIN_PASSWORD') ?: '12345678'),
+            ]
+        );
     }
 }

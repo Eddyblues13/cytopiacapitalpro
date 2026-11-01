@@ -15,6 +15,12 @@ class PlansTableSeeder extends Seeder
      */
     public function run()
     {
+        // Only fill an empty table, so re-seeding never overwrites or restores plans managed in the admin panel
+        if (DB::table('plans')->exists()) {
+            $this->command->info('Plans already exist, skipping.');
+            return;
+        }
+
         $now = Carbon::now();
 
         $plans = [

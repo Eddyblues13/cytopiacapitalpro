@@ -14,5 +14,6 @@ class WalletOption extends Model
         'icon',
         'wallet_address',
         'network_type',
+        'status',
     ];
 }

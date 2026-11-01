@@ -14,8 +14,11 @@ class WalletOptionsTableSeeder extends Seeder
      */
     public function run()
     {
-        // Clear the table first
-        DB::table('wallet_options')->truncate();
+        // Only fill an empty table: wallet addresses are edited in the admin panel and must survive re-seeding
+        if (DB::table('wallet_options')->exists()) {
+            $this->command->info('Wallet options already exist, skipping.');
+            return;
+        }
 
         $wallets = [
             [

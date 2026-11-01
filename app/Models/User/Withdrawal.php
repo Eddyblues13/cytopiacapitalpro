@@ -11,6 +11,8 @@ class Withdrawal extends Model
         'account_type',
         'crypto_currency',
         'amount',
+        'currency',
+        'fee',
         'wallet_address',
         'bank_details',
         'status',

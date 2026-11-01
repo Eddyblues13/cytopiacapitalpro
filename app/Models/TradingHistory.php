@@ -11,6 +11,11 @@ class TradingHistory extends Model
         'trader_id',    // ID of the trader whose trade was copied
         'amount',       // Amount used for the trade
         'status',       // Status of the trade (e.g., pending, success, failed)
+        'closed_at',    // When the user stopped copying the trader
+    ];
+
+    protected $casts = [
+        'closed_at' => 'datetime',
     ];
 
     /**

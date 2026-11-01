@@ -533,15 +533,13 @@ class AdminController extends Controller
         $user = User::find($userId);
 
         if ($user) {
-            $details = [
-                'name' => $user->name,
-                'transactionType' => $transactionType,
-                'amount' => $amount,
-                'transactionCategory' => $transactionCategory,
-                'date' => now()->toDateTimeString(),
-            ];
-
-            Mail::to($user->email)->send(new TransactionNotificationMail($details));
+            Mail::to($user->email)->send(new TransactionNotificationMail(
+                $user->name,
+                $amount,
+                $transactionCategory,
+                $transactionType,
+                now()->toDateTimeString()
+            ));
         }
     }
 
